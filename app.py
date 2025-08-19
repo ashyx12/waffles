@@ -34,7 +34,7 @@ try:
     log.info("FAISS database loaded successfully.")
 
     prompt_template = """See if the user is conversating with you or asking a question regarding
-    Embedded Systems, if the user is conversating with you just talk to the user. If the user is asking
+    Embedded Systems, if the user is conversating with you just talk to the user and do not cite sources. If the user is asking
     a question regarding Embedded Systems then
     Use the following pieces of context to answer the question at the end. 
     Elaborate the answer so that it is easy to understand.
