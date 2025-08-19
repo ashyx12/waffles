@@ -2,7 +2,7 @@ import os
 import logging
 import sys
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles # Keep this import
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
@@ -10,24 +10,18 @@ from langchain_community.vectorstores import FAISS
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 
-# --- Basic Logging Setup ---
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 log = logging.getLogger(__name__)
 
-# --- Load Environment Variables ---
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
-# --- Define Absolute Paths for Reliability ---
-# This ensures Render can always find your files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 DB_FAISS_PATH = os.path.join(BASE_DIR, "db")
 
-# --- Initialize FastAPI App ---
 app = FastAPI()
 
-# --- Initialize LangChain QA Chain ---
 qa_chain = None
 try:
     log.info("Initializing the QA Chain...")
@@ -39,7 +33,10 @@ try:
     db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
     log.info("FAISS database loaded successfully.")
 
-    prompt_template = """Use the following pieces of context to answer the question at the end. 
+    prompt_template = """See if the user is conversating with you or asking a question regarding
+    Embedded Systems, if the user is conversating with you just talk to the user. If the user is asking
+    a question regarding Embedded Systems then
+    Use the following pieces of context to answer the question at the end. 
     Elaborate the answer so that it is easy to understand.
     Context: {context}
     Question: {question}
@@ -54,18 +51,16 @@ try:
         return_source_documents=True,
         chain_type_kwargs={'prompt': prompt}
     )
-    log.info("✅ QA Chain initialized successfully!")
+    log.info("QA Chain initialized successfully!")
 
 except Exception as e:
-    log.error(f"❌ Failed during initialization: {e}", exc_info=True)
+    log.error(f"Failed during initialization: {e}", exc_info=True)
 
-# --- API Endpoints ---
 class Query(BaseModel):
     question: str
 
 @app.post("/ask")
 async def ask(query: Query):
-    """Handles user questions and returns answers from the QA chain."""
     if not qa_chain:
         raise HTTPException(status_code=500, detail="Server not initialized properly.")
     
@@ -80,7 +75,4 @@ async def ask(query: Query):
         log.error(f"Error processing query: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
-
-# --- THE FIX: Mount the static directory at the end ---
-# This serves your index.html from the root URL ("/")
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
