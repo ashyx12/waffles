@@ -26,7 +26,7 @@ Answer:
 """
 prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
 
-llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=os.environ["GOOGLE_API_KEY"])
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
 
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
