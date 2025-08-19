@@ -1,13 +1,38 @@
-name: Deploy to Render
+# .github/workflows/render-deploy.yml
+
+name: Deploy to Render and Log to GitHub
 
 on:
   push:
     branches:
-      - main
+      - main # Or your deployment branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Render Deploy Hook
-        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      # Step 1: Tell GitHub a deployment is starting
+      - name: Create GitHub Deployment
+        uses: bobheadxi/deployments@v1
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }} # This token is automatically provided by GitHub
+          env: production # You can name this whatever you like (e.g., 'production' or 'staging')
+
+      # Step 2: Trigger the actual deployment on Render
+      - name: Trigger Render Deploy
+        run: |
+          curl --fail-with-body -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        # The --fail-with-body flag makes the curl command fail if the HTTP response code is 400 or higher
+
+      # Step 3: Update GitHub with the result of the deployment
+      - name: Update GitHub Deployment Status
+        uses: bobheadxi/deployments@v1
+        if: always() # This ensures the status is updated even if the deploy fails
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          status: ${{ job.status }} # This will be 'success' or 'failure'
+          deployment_id: ${{ steps.deployment.outputs.id }}
+          env_url: https://your-app-name.onrender.com # IMPORTANT: Add your live URL here!
