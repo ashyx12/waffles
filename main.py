@@ -113,5 +113,4 @@ while True:
 
     except Exception as e:
         print(f"\nError details: {e}")
-        print("\n" + "="*50 + "\n")
 
