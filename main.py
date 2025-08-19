@@ -19,7 +19,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 PATH = "/content/drive/MyDrive/waffles/"
-DOCUMENTS_PATH = os.path.join(PATH, "data/BME")
+DOCUMENTS_PATH = os.path.join(PATH, "data/ES")
 DB_FAISS_PATH = os.path.join(PATH, 'db')
 
 !pip install "unstructured[all-docs]"
@@ -74,7 +74,7 @@ Answer:
 
 prompt = PromptTemplate(template = prompt_template, input_variables=["context", "question"])
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=GOOGLE_API_KEY)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", google_api_key=GOOGLE_API_KEY)
 
 from langchain.chains import LLMChain
 
@@ -105,8 +105,6 @@ while True:
         answer_rag = res_rag["result"]
         source_docs = res_rag["source_documents"]
 
-        print("\n" + "="*25)
-        print("="*25)
         print(answer_rag)
         if source_docs:
             print("\nSources:")
@@ -114,11 +112,6 @@ while True:
                 print(f"- {os.path.basename(doc.metadata.get('source', 'Unknown'))}")
 
     except Exception as e:
-        print("\nAn error occurred while getting the response.")
-        print("This could be due to several reasons:")
-        print("- Your GOOGLE_API_KEY might be invalid or missing.")
-        print("- You might have exceeded the API rate limits for the free tier.")
-        print("- The query or retrieved content might have been blocked by safety filters.")
         print(f"\nError details: {e}")
         print("\n" + "="*50 + "\n")
 
