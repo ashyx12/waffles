@@ -1,12 +1,9 @@
-# app.py
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.prompts import PromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain.chains import RetrievalQA
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
@@ -14,23 +11,14 @@ from fastapi.responses import FileResponse
 
 load_dotenv()
 
-# Initialize the FastAPI app
 app = FastAPI()
-
-# Mount the 'static' directory to serve the frontend
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- Configuration ---
 DB_FAISS_PATH = 'db'
 
-# --- Load Pre-built Vector DB ---
-embeddings = HuggingFaceEmbeddings(
-    model_name='sentence-transformers/all-MiniLM-L6-v2',
-    model_kwargs={'device': 'cpu'}
-)
+embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
 
-# --- Set up LLM and QA Chain ---
 prompt_template = """Use the following pieces of context to answer the question at the end. Elaborate the answer so that it is easy to understand.
 Context: {context}
 Question: {question}
@@ -48,7 +36,6 @@ qa_chain = RetrievalQA.from_chain_type(
     chain_type_kwargs={'prompt': prompt}
 )
 
-# --- API Endpoints ---
 class Query(BaseModel):
     question: str
 
@@ -61,13 +48,8 @@ def ask(query: Query):
     try:
         res = qa_chain.invoke({'query': query.question})
         answer = res["result"]
-        # Note: Source document metadata might be minimal if not stored during indexing
         source_docs = res.get("source_documents", [])
-        
-        sources = []
-        for doc in source_docs:
-            sources.append(os.path.basename(doc.metadata.get('source', 'Unknown')))
-
+        sources = [os.path.basename(doc.metadata.get('source', 'Unknown')) for doc in source_docs]
         return {"answer": answer, "sources": sources}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
