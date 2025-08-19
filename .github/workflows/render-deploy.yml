@@ -2,7 +2,6 @@
 
 name: Deploy to Render and Log to GitHub
 
-# This workflow runs on any push to the 'main' branch
 on:
   push:
     branches:
@@ -10,38 +9,33 @@ on:
 
 jobs:
   deploy:
-    # The type of machine to run the job on
     runs-on: ubuntu-latest
-
-    # VITAL: This grants the workflow permission to create a deployment status
     permissions:
       deployments: write
 
     steps:
-      # Step 1: Tell GitHub a deployment is starting.
-      # This creates the entry in the "Deployments" tab.
+      # Step 1: Start the deployment
       - name: Create GitHub Deployment
         uses: bobheadxi/deployments@v1
         id: deployment
         with:
           step: start
           token: ${{ secrets.GITHUB_TOKEN }}
-          env: production # You can change this to 'staging' or another environment name
+          env: production # The environment is defined here
 
-      # Step 2: Trigger the actual deployment on Render using your deploy hook.
-      # The '--fail-with-body' flag will cause this step to fail if Render returns an error.
+      # Step 2: Trigger the deployment on Render
       - name: Trigger Render Deploy
         run: |
           curl --fail-with-body -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
 
-      # Step 3: Update GitHub with the final result of the deployment.
-      # The 'if: always()' condition ensures this step runs even if the previous step failed.
+      # Step 3: Finish the deployment
       - name: Update GitHub Deployment Status
         uses: bobheadxi/deployments@v1
         if: always()
         with:
           step: finish
           token: ${{ secrets.GITHUB_TOKEN }}
-          status: ${{ job.status }} # Reports 'success' or 'failure' back to GitHub
+          status: ${{ job.status }}
           deployment_id: ${{ steps.deployment.outputs.id }}
-          env_url: https://your-app-name.onrender.com # IMPORTANT: Replace with your live URL!
+          env_url: https://your-app-name.onrender.com
+          env: ${{ steps.deployment.outputs.env }} # ADD THIS LINE
