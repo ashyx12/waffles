@@ -5,9 +5,5 @@ langchain
 langchain-google-genai
 sentence-transformers
 faiss-cpu
-pypdf
-unstructured
 python-dotenv
 langchain-community
-unstructured[all-docs]
-python-pptx

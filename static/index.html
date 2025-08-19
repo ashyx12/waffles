@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Q&A</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; background-color: #f4f4f9; }
+        h1 { color: #333; text-align: center; }
+        #qa-form { display: flex; gap: 10px; margin-bottom: 20px; }
+        #question { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 15px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; }
+        button:disabled { background-color: #aaa; }
+        #response-container { background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        #answer { white-space: pre-wrap; }
+        #sources { margin-top: 15px; font-size: 0.9em; color: #555; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h1>Ask a Question</h1>
+    <form id="qa-form">
+        <input type="text" id="question" placeholder="Enter your question here..." required>
+        <button type="submit">Ask</button>
+    </form>
+    <div class="spinner" id="spinner"></div>
+    <div id="response-container" style="display:none;">
+        <h2>Answer:</h2>
+        <p id="answer"></p>
+        <div id="sources"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('qa-form');
+        const questionInput = document.getElementById('question');
+        const responseContainer = document.getElementById('response-container');
+        const answerEl = document.getElementById('answer');
+        const sourcesEl = document.getElementById('sources');
+        const spinner = document.getElementById('spinner');
+        const submitButton = form.querySelector('button');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = questionInput.value;
+            if (!question) return;
+
+            // Show spinner and disable button
+            spinner.style.display = 'block';
+            submitButton.disabled = true;
+            responseContainer.style.display = 'none';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Display response
+                answerEl.textContent = data.answer;
+                if (data.sources && data.sources.length > 0) {
+                    sourcesEl.innerHTML = '<strong>Sources:</strong><ul>' + data.sources.map(s => `<li>${s}</li>`).join('') + '</ul>';
+                } else {
+                    sourcesEl.innerHTML = '';
+                }
+                responseContainer.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                answerEl.textContent = 'An error occurred. Please check the console and try again.';
+                sourcesEl.innerHTML = '';
+                responseContainer.style.display = 'block';
+            } finally {
+                // Hide spinner and enable button
+                spinner.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
