@@ -46,7 +46,7 @@ try:
     Answer:
     """
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type='stuff',
