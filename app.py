@@ -1,9 +1,8 @@
 import os
 import logging
 import sys
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles # Keep this import
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
@@ -18,33 +17,28 @@ log = logging.getLogger(__name__)
 # --- Load Environment Variables ---
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
-if not api_key:
-    # On Render, we use environment variables directly, so this error is for local testing
-    log.warning("GOOGLE_API_KEY not found in .env file. Hoping it's set in the deployment environment.")
 
-# --- Define Paths ---
-DB_FAISS_PATH = 'db'
+# --- Define Absolute Paths for Reliability ---
+# This ensures Render can always find your files
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+DB_FAISS_PATH = os.path.join(BASE_DIR, "db")
 
 # --- Initialize FastAPI App ---
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- Initialize LangChain QA Chain ---
 qa_chain = None
 try:
     log.info("Initializing the QA Chain...")
-    
-    # Load the embeddings model
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
-    
-    # Load the FAISS database
+
     if not os.path.exists(DB_FAISS_PATH):
-        raise FileNotFoundError(f"FAISS database not found at path: {DB_FAISS_PATH}. Please make sure the 'db' folder is uploaded.")
-    
+        raise FileNotFoundError(f"Database not found at {DB_FAISS_PATH}. Ensure the 'db' folder is deployed.")
+        
     db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
     log.info("FAISS database loaded successfully.")
 
-    # Create the prompt template
     prompt_template = """Use the following pieces of context to answer the question at the end. 
     Elaborate the answer so that it is easy to understand.
     Context: {context}
@@ -52,15 +46,11 @@ try:
     Answer:
     """
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-
-    # Initialize the LLM
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key)
-
-    # Create the QA Chain
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type='stuff',
-        retriever=db.as_retriever(search_kwargs={'k': 3}), # Using 3 sources for better context
+        retriever=db.as_retriever(search_kwargs={'k': 3}),
         return_source_documents=True,
         chain_type_kwargs={'prompt': prompt}
     )
@@ -69,30 +59,28 @@ try:
 except Exception as e:
     log.error(f"❌ Failed during initialization: {e}", exc_info=True)
 
-
 # --- API Endpoints ---
 class Query(BaseModel):
     question: str
-
-@app.get("/")
-async def read_index():
-    """Serves the frontend HTML file."""
-    return FileResponse('static/index.html')
 
 @app.post("/ask")
 async def ask(query: Query):
     """Handles user questions and returns answers from the QA chain."""
     if not qa_chain:
-        raise HTTPException(status_code=500, detail="Server not initialized properly. Check the logs for errors.")
+        raise HTTPException(status_code=500, detail="Server not initialized properly.")
     
     try:
         log.info(f"Received query: {query.question}")
         res = qa_chain.invoke({'query': query.question})
         answer = res.get("result", "Sorry, I could not find an answer.")
-        source_docs = res.get("source_documents", [])
-        sources = [os.path.basename(doc.metadata.get('source', 'Unknown')) for doc in source_docs]
-        return {"answer": answer, "sources": list(set(sources))} # Use set to remove duplicate sources
+        sources = [os.path.basename(doc.metadata.get('source', 'Unknown')) for doc in res.get("source_documents", [])]
+        return {"answer": answer, "sources": list(set(sources))}
     
     except Exception as e:
         log.error(f"Error processing query: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+# --- THE FIX: Mount the static directory at the end ---
+# This serves your index.html from the root URL ("/")
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
