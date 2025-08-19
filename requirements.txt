@@ -9,5 +9,5 @@ pypdf
 unstructured
 python-dotenv
 langchain-community
-"unstructured[all-docs]"
+unstructured[all-docs]
 python-pptx
