@@ -1,5 +1,3 @@
-# .github/workflows/render-deploy.yml
-
 name: Deploy to Render and Log to GitHub
 
 on:
