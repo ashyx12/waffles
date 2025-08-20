@@ -3,28 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>RAG Q&A</title>
+    <title>RAG Q&A Chatbot</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .chat-window {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background-color: #e9e9eb;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .bot-message strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .bot-message ul {
+            padding-left: 20px;
+            margin: 5px 0 0;
+        }
+
+
+        #qa-form {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        #question {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        button:disabled {
+            background-color: #aaa;
+        }
+        
+        .spinner { 
+            border: 4px solid #f3f3f3; 
+            border-top: 4px solid #3498db; 
+            border-radius: 50%; 
+            width: 20px; 
+            height: 20px; 
+            animation: spin 1s linear infinite; 
+            align-self: center;
+            margin: 20px;
+            display: none; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+    </style>
 </head>
 <body>
-    <h1>Ask a Question</h1>
-    <form id="qa-form">
-        <input type="text" id="question" placeholder="Enter your question here..." required>
-        <button type="submit">Ask</button>
-    </form>
-    <div class="spinner" id="spinner"></div>
-    <div id="response-container" style="display:none;">
-        <h2>Answer:</h2>
-        <p id="answer"></p>
-        <div id="sources"></div>
+    <div class="chat-container">
+        <h1>Ask a Question</h1>
+        <div class="chat-window" id="chat-window">
+             </div>
+        <div class="spinner" id="spinner"></div>
+        <form id="qa-form">
+            <input type="text" id="question" placeholder="Enter your question here..." required>
+            <button type="submit">➤</button>
+        </form>
     </div>
 
     <script>
         const form = document.getElementById('qa-form');
         const questionInput = document.getElementById('question');
-        const responseContainer = document.getElementById('response-container');
-        const answerEl = document.getElementById('answer');
-        const sourcesEl = document.getElementById('sources');
+        const chatWindow = document.getElementById('chat-window');
         const spinner = document.getElementById('spinner');
         const submitButton = form.querySelector('button');
 
@@ -33,10 +146,13 @@
             const question = questionInput.value;
             if (!question) return;
 
+            // Display user's question
+            appendMessage(question, 'user');
+            questionInput.value = '';
+
             // Show spinner and disable button
             spinner.style.display = 'block';
             submitButton.disabled = true;
-            responseContainer.style.display = 'none';
 
             try {
                 const response = await fetch('/ask', {
@@ -51,26 +167,30 @@
 
                 const data = await response.json();
 
-                // Display response
-                answerEl.textContent = data.answer;
+                // Display bot's response
+                let botResponse = data.answer;
                 if (data.sources && data.sources.length > 0) {
-                    sourcesEl.innerHTML = '<strong>Sources:</strong><ul>' + data.sources.map(s => `<li>${s}</li>`).join('') + '</ul>';
-                } else {
-                    sourcesEl.innerHTML = '';
+                    botResponse += '\n\n<strong>Sources:</strong><ul>' + data.sources.map(s => `<li>${s}</li>`).join('') + '</ul>';
                 }
-                responseContainer.style.display = 'block';
+                appendMessage(botResponse, 'bot');
 
             } catch (error) {
                 console.error('Error:', error);
-                answerEl.textContent = 'An error occurred. Please check the console and try again.';
-                sourcesEl.innerHTML = '';
-                responseContainer.style.display = 'block';
+                appendMessage('An error occurred. Please check the console and try again.', 'bot');
             } finally {
                 // Hide spinner and enable button
                 spinner.style.display = 'none';
                 submitButton.disabled = false;
             }
         });
+
+        function appendMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', `${sender}-message`);
+            messageElement.innerHTML = text; // Use innerHTML to render the sources list
+            chatWindow.appendChild(messageElement);
+            chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to the bottom
+        }
     </script>
 </body>
 </html>
