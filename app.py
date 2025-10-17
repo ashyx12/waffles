@@ -42,9 +42,7 @@ try:
     db = FAISS.load_local(DB_FAISS_PATH, embeddings, allow_dangerous_deserialization=True)
     log.info("FAISS database loaded successfully.")
 
-    prompt_template = """See if the user is conversating with you or asking a question regarding
-    Operating Systems, if the user is conversating with you just talk to the user and DO NOT SITE SOURCES. If the user is asking
-    a question regarding Operating Systems then
+    prompt_template = """
     Use the following pieces of context to answer the question at the end.
     Elaborate the answer so that it is easy to understand.
     Context: {context}
