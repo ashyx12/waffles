@@ -6,6 +6,10 @@ Waffles is an intelligent question-answering system designed to help you underst
 
 This version is the first step toward that goal, with a focus on **Operating Systems**. If you've ever struggled to find a specific piece of information in a dense PowerPoint presentation or a lengthy textbook, Waffles is here to help.
 
+## LIVE DEMO
+
+You can check out a live version of the website here: **[https://waffles-glm9.onrender.com]**
+
 ## Features
 
 - **Natural Language Questions:** Ask questions in plain English, just like you would talk to a person.
@@ -43,7 +47,7 @@ Waffles uses a technique called **Retrieval-Augmented Generation (RAG)**.
 
 1.  **Clone the repository:**
     ```bash
-    git clone 
+    git clone https://github.com/ashyx12/waffles.git
     cd Waffles
     ```
    
@@ -59,10 +63,12 @@ Waffles uses a technique called **Retrieval-Augmented Generation (RAG)**.
     ```
    
 4.  **Add Your Documents:**
-    For now, place your documents about **Operating Systems** into the `data/ES` directory.
+    For now, place your documents into the `data/ES` directory.
 
 5.  **Create the Vector Database:**
     Run the `main.py` script to process your documents.
     ```bash
     python main.py
     ```
+6. **Ask Questions:**
+   You can ask questions from the documents you have uploaded
